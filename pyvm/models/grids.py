@@ -1,11 +1,11 @@
 """
-Utilities for working with VM model grids
+Utilities for managing model grids
 """
 from __future__ import (absolute_import, division, print_function,
         unicode_literals)
 
-import numpy as np
 import copy
+import numpy as np
 
 def coord2index(x, x0, dx, nx):
     _ix = np.asarray(np.round((np.atleast_1d(x) - x0) / float(dx)),
@@ -18,7 +18,7 @@ class CartesianGrid3D(object):
     """
     def __init__(self, values, origin=(0, 0, 0), spacing=(1, 1, 1)):
         """
-        Create a new grid object
+        Class for managing a 3D cartesian grid
 
         Parameters
         ----------
@@ -57,20 +57,20 @@ class CartesianGrid3D(object):
         assert len(spacing) == 3
 
         self.values = np.atleast_3d(values)
-        self.origin = origin
-        self.spacing = spacing
+        self.origin = np.asarray(origin)
+        self.spacing = np.asarray(spacing)
 
     def __str__(self):
 
         sng = "{:}-node cartesian grid:\n"\
                 .format(self.nx * self.ny * self.nz)
-        sng += "x-range: [{:}, {:}] (nx = {:}, dx = {:})\n"\
+        sng += "x-range: [{:g}, {:g}] (nx = {:}, dx = {:g})\n"\
                 .format(self.x[0], self.x[-1], self.nx, self.dx)
-        sng += "y-range: [{:}, {:}] (ny = {:}, dy = {:})\n"\
+        sng += "y-range: [{:g}, {:g}] (ny = {:}, dy = {:g})\n"\
                 .format(self.y[0], self.y[-1], self.ny, self.dy)
-        sng += "z-range: [{:}, {:}] (nz = {:}, dz = {:})\n"\
+        sng += "z-range: [{:g}, {:g}] (nz = {:}, dz = {:g})\n"\
                 .format(self.z[0], self.z[-1], self.nz, self.dz)
-        sng += " values: min = {:}, mean = {:}, max = {:}"\
+        sng += " values: min = {:g}, mean = {:g}, max = {:g}"\
                 .format(self.min(), self.mean(), self.max())
 
         return sng
@@ -230,7 +230,7 @@ class CartesianGrid3D(object):
     def to_bin(self, path_or_buf=None, order=(0, 1, 2),
             dtype=np.float32):
         """
-        Write grid values to headerless binary file
+        Write grid values to a headerless binary file
 
         Parameters
         ----------

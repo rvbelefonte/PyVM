@@ -219,12 +219,5 @@ def suite():
 
     return testSuite
 
-
-def suite():
-    testSuite = unittest.makeSuite(gridsTestCase, 'test')
-    testSuite.addTest(doctest.DocTestSuite(grids))
-
-    return testSuite
-
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')
