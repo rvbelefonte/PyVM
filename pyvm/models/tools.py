@@ -5,7 +5,95 @@ from __future__ import (absolute_import, division, print_function,
         unicode_literals)
 
 import numpy as np
+from scipy import signal
 from scipy.interpolate import interp1d
+
+def gauss_kern(size, sizey=None):
+    """
+    Returns a normalized 2D gauss kernel array for convolutions
+    """
+    size = int(size)
+    if not sizey:
+        sizey = size
+    else:
+        sizey = int(sizey)
+    x, y = np.mgrid[-size:size+1, -sizey:sizey+1]
+    g = np.exp(-(x**2 / float(size) + y**2 / float(sizey)))
+
+    return g / g.sum()
+
+def smooth2d(im, n, ny=None):
+    """
+    Blurs the image by convolving with a gaussian kernel of typical
+    size n. The optional keyword argument ny allows for a different
+    size in the y direction.
+    """
+    g = gauss_kern(n, sizey=ny)
+    improc = signal.convolve(im, g, mode='valid')
+
+    return(improc)
+
+def smooth1d(x, window_len=10, window='hanning'):
+    """
+    Smooth the data using a window with requested size.
+    
+    This method is based on the convolution of a scaled window with the signal.
+    The signal is prepared by introducing reflected copies of the signal 
+    (with the window size) in both ends so that transient parts are minimized
+    in the begining and end part of the output signal.
+    
+    Parameters
+    ----------
+    x: array_like
+        The input signal 
+    window_len: int
+        The dimension of the smoothing window
+    window: str, optional
+        The type of window from 'flat', 'hanning', 'hamming', 'bartlett',
+        'blackman'. Flat window will produce a moving average smoothing.
+
+    Returns:
+    --------
+    x_smooth: ndarray
+        The smoothed signal
+        
+    Examples:
+    ---------
+    >>> import numpy as np    
+    >>> from pyvm.models.tools import smooth1d
+    >>> t = np.linspace(-2, 2, 10)
+    >>> x = np.sin(t) + np.random.randn(len(t)) * 0.1
+    >>> y = smooth1d(x)
+    
+    See also:
+    ---------
+    numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman,
+    numpy.convolve
+    scipy.signal.lfilter
+    """
+
+    if x.ndim != 1:
+        raise ValueError, "smooth only accepts 1 dimension arrays."
+
+    if x.size < window_len:
+        raise ValueError, "Input vector needs to be bigger than window size."
+
+    if window_len < 3:
+        return x
+
+    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+        raise ValueError, "Window is on of 'flat', 'hanning', 'hamming'," \
+                            + "'bartlett', 'blackman'"
+
+    s=np.r_[2*x[0]-x[window_len:1:-1], x, 2*x[-1]-x[-1:-window_len:-1]]
+    
+    if window == 'flat': #moving average
+        w = np.ones(window_len,'d')
+    else:
+        w = getattr(np, window)(window_len)
+    y = np.convolve(w/w.sum(), s, mode='same')
+
+    return y[window_len-1:-window_len+1]
 
 
 class VMTools(object):
@@ -123,6 +211,49 @@ class VMTools(object):
                     _v0 = v0
                 self.sl[ix, iy, iz0:iz1] = 1. / (_v0 + z * dvdz)
 
+    def define_variable_layer_gradient(self, ilyr, dvdz, v0=None):
+        """
+        Replace velocities within a layer by defining a gtradient that
+        varies linearly in the horizontal directions.
+
+        Parameters
+        ----------
+        ilyr: int
+            Index of layer to work on.
+        dvdz: array_like
+            List of velocity gradient values. Must have shape (nx, ny).
+        v0: float, array_like or None, optional
+            List of velocities at the top of the layer. Must be of
+            shape (nx, ny), a scalar value, or None. Default is to use
+            the value at the base of the overlying layer.
+        """
+        z0, z1 = self.get_layer_bounds(ilyr)
+
+        if v0 is not None:
+            v0 = np.atleast_1d(v0)
+            if len(v0) == 1:
+                v0 = v0 * np.ones((self.nx, self.ny))
+            else:
+                v0 = np.asarray(v0)
+
+        assert (v0 is None) or (v0.shape == (self.nx, self.ny)),\
+            'v0 must be scalar, nx-by-ny, or None'
+
+        for ix in range(0, self.nx):
+            for iy in range(0, self.ny):
+                iz0, iz1 = self.grid.z2i((z0[ix, iy], z1[ix, iy]))
+                iz1 += 1
+                z = self.grid.z[iz0:iz1] - self.grid.z[iz0]
+                if v0 is None:
+                    if iz0 == 0:
+                        _v0 = 0.
+                    else:
+                        _v0 = 1. / self.sl[ix, iy, iz0 - 1]
+                else:
+                    _v0 = v0[ix, iy]
+
+                self.sl[ix, iy, iz0:iz1] = 1. / (_v0 + z * dvdz[ix, iy])
+
     def define_stretched_layer_velocities(self, ilyr, vel=[None, None],
                                           xmin=None, xmax=None, ymin=None,
                                           ymax=None, kind='linear'):
@@ -212,3 +343,33 @@ class VMTools(object):
         """
         self.define_stretched_layer_velocities(ilyr, [vel], xmin=xmin,
                 xmax=xmax, ymin=ymin, ymax=ymax)
+
+    def smooth_interface(self, iref, n=1, nwin=3, nwin_y=None):
+        """
+        Smooth interface depth by convolving a gaussian kernal of typical size
+        n.  The optional keyword argument ``ny`` allows for a different
+        size in the y direction.
+        
+        Parameter
+        ---------
+        iref: int
+            Index of interface to smooth.
+        n: int
+            Number of times to run the filter.
+        nwin: int, optional
+            Size of the guassian kernal. Default is 3.
+        nwin_y: int, optional
+            Specifies a different dimension for the smoothing
+            kernal in the y direction. Default is to set the y size equal to 
+            to the size in x.
+        """
+        for i in range(n):
+            nwin = min(self.nx, nwin)
+            if nwin_y is None:
+                nwin_y = nwin
+            nwin_y = min(self.ny, nwin_y)
+            if nwin_y == 1:
+                self.rf[iref] = smooth1d(self.rf[iref].flatten(), nwin)\
+                    .reshape((self.nx, 1))
+            else:
+                self.rf[iref] = smooth2d(self.rf[iref], nwin, ny=nwin_y)

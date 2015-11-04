@@ -320,6 +320,12 @@ class VM(VMIO, VMTools, VMPlotter):
 
     ilyr = property(fget=_get_ilyr)
 
+    def copy(self):
+        """
+        Returns a copy of the model instance
+        """
+        return copy.deepcopy(self)
+
     def xrange2i(self, xmin=None, xmax=None):
         """
         Returns a list of x indices for a given x range.

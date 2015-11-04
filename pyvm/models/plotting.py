@@ -13,17 +13,22 @@ class VMPlotter(object):
     Convience class for VM model plotting tools 
     """
     def plot(self, ax=None, figsize=None, cmap='jet',
-            aspect=None, velocity=True, vmin=0.333, vmax=8.5,
-            rf=True, ir=True, ij=True):
+            aspect=None, velocity=True, apply_jumps=True,
+            vmin=0.333, vmax=8.5, rf=True, ir=True, ij=True, show=None):
 
         #XXX TODO
         assert self.ny == 1, 'Only works for 2D models, for now'
-        vm = self #TODO placeholder for 2D slice from 3D model
+        vm = self.copy() #TODO placeholder for 2D slice from 3D model
+
+        if apply_jumps:
+            vm.apply_jumps()
 
         if ax is None:
             fig = plt.figure(figsize=figsize)
             ax = fig.add_subplot(111)
-            show = True
+            new = True
+        else:
+            new = False
 
         # grid
         img = np.flipud(vm.sl[:, 0, :].T)
@@ -48,8 +53,10 @@ class VMPlotter(object):
                 _ij[idx] = np.nan
                 ax.plot(vm.grid.x, _ij, '-g', lw=0.5)
 
-        plt.xlim(vm.r1[0], vm.r2[0])
-        plt.ylim(vm.r1[2], vm.r2[2])
-        if show:
+        if new:
+            plt.xlim(vm.r1[0], vm.r2[0])
+            plt.ylim(vm.r1[2], vm.r2[2])
             plt.gca().invert_yaxis()
+
+        if ((show is None) and new) or show:
             plt.show()

@@ -10,6 +10,7 @@ import unittest
 import numpy as np
 from pyvm.utils.loaders import get_example_file
 from pyvm.models.vm import VM
+from pyvm.models import tools
 
 class toolsTestCase(unittest.TestCase):
 
@@ -97,6 +98,7 @@ class toolsTestCase(unittest.TestCase):
 
 def suite():
     testSuite = unittest.makeSuite(toolsTestCase, 'test')
+    testSuite.addTest(doctest.DocTestSuite(tools))
 
     return testSuite
 
