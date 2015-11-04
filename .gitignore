@@ -1,3 +1,7 @@
+# Examples
+mymodel.vm
+
+# File types
 temp.*
 *.py[co]
 .ipynb_checkpoints
