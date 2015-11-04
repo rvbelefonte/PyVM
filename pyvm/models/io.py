@@ -166,7 +166,7 @@ class VMIO(object):
         
             for attr in ['ir', 'ij']:
                 v = np.reshape(self.__getattribute__(attr), (nrefl)) + 1
-                pack.pack_4byte_IEEE(buf, np.int32(v), endian)
+                pack.pack_4byte_Integer(buf, np.int32(v), endian)
 
     def _write_bin(self, buf, order=(0, 1, 2), dtype=np.float32):
 
