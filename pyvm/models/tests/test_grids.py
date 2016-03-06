@@ -8,6 +8,7 @@ import os
 import doctest
 import unittest
 import numpy as np
+from scipy.io import netcdf_file
 from pyvm.models import grids
 from pyvm.models.grids import CartesianGrid3D
 
@@ -212,9 +213,56 @@ class gridsTestCase(unittest.TestCase):
             
         os.remove(fname)
 
+    def dev_to_gmt(self):
+        """
+        Should write grid to a NetCDF file
+        """
+        values = np.random.rand(10, 20, 30)
+        grd = CartesianGrid3D(values)
+
+        fname = 'temp.grd'
+        if os.path.isfile(fname):
+            os.remove(fname)
+
+        # should create a NetCDF file 
+        grd.to_gmt(fname)
+        nc = netcdf_file(fname, 'r')
+        for k in ['x_range', 'spacing', 'z', 'y_range',
+                'dimension', 'z_range']:
+            self.assertTrue(k in nc.variables)
+
+        # default should write values[:, :, 0]
+        # Note swapped ordering here
+        self.assertEqual(nc.variables['dimension'][0], values.shape[1])
+        self.assertEqual(nc.variables['dimension'][1], values.shape[0])
+
+        zz = np.reshape(nc.variables['z'][::].copy(),
+                (nc.variables['dimension'][1],
+                    nc.variables['dimension'][0]))
+
+        for ix in range(values.shape[0]):
+            for iy in range(values.shape[1]):
+                self.assertEqual(zz[ix, iy], values[ix, iy, 0])
+
+
+        # should write values[:, iy, :]
+        iy0 = 3
+        grd.to_gmt(fname, iy=iy0)
+        nc = netcdf_file(fname, 'r')
+        self.assertEqual(nc.variables['dimension'][1], values.shape[0])
+        self.assertEqual(nc.variables['dimension'][0], values.shape[2])
+        
+        zz = np.reshape(nc.variables['z'][::].copy(),
+                (nc.variables['dimension'][1],
+                    nc.variables['dimension'][0]))
+        
+        for ix in range(values.shape[0]):
+            for iy in range(values.shape[2]):
+                self.assertEqual(zz[ix, iy], values[ix, iy0, iy])
+
 
 def suite():
-    testSuite = unittest.makeSuite(gridsTestCase, 'test')
+    testSuite = unittest.makeSuite(gridsTestCase, 'dev')
     testSuite.addTest(doctest.DocTestSuite(grids))
 
     return testSuite

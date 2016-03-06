@@ -13,8 +13,8 @@ class VMPlotter(object):
     Convience class for VM model plotting tools 
     """
     def plot(self, ax=None, figsize=None, cmap='jet',
-            aspect=None, velocity=True, apply_jumps=True,
-            vmin=0.333, vmax=8.5, rf=True, ir=True, ij=True, show=None):
+            aspect='auto', velocity=True, apply_jumps=True,
+            vmin=None, vmax=None, rf=True, ir=True, ij=True, show=None):
 
         #XXX TODO
         assert self.ny == 1, 'Only works for 2D models, for now'

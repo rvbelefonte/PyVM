@@ -6,11 +6,64 @@ from __future__ import (absolute_import, division, print_function,
 
 import copy
 import numpy as np
+from scipy.io import netcdf_file
 
 def coord2index(x, x0, dx, nx):
     _ix = np.asarray(np.round((np.atleast_1d(x) - x0) / float(dx)),
             dtype=np.int)
     return np.clip(_ix, 0, nx - 1)
+
+def to_gmt(x, y, z, filename, title='No title',
+        xunit='Unknown', yunit='Unknown', zunit='Unknown',
+        zname='Uknown', scale=1., offset=0., source=None):
+    """
+    Write a 2D grid to a GMT-compatible NetCDF file
+    """
+
+    g = netcdf_file(filename, mode='w')
+
+    # create all fields
+    g.createDimension('side', 2)
+    g.createDimension('xysize', np.product(z.shape))
+
+    x_range = g.createVariable('x_range', np.float32, ('side', ))
+    x_range.units = xunit
+    
+    y_range = g.createVariable('y_range', np.float32, ('side', ))
+    y_range.units = yunit
+
+    z_range = g.createVariable('z_range', np.float32, ('side', ))
+    z_range.units = zunit
+
+    spacing = g.createVariable('spacing', np.float32, ('side', ))
+    dimension = g.createVariable('dimension', np.int32, ('side', ))
+
+    zz = g.createVariable('z', np.float32, ('xysize', ))
+    zz.long_name = zname
+    zz.scale_factor = scale
+    zz.add_offset = offset
+    zz.node_offset = 0
+
+    g.title = title
+
+    if source is None:
+        g.source = 'Created by to_gmt()'
+    else:
+        g.source = source
+
+    # set grid range and spacing
+    x_range[:] = [x[0], x[-1]]
+    y_range[:] = [y[0], y[-1]]
+    spacing[:] = [x[1] - x[0], y[1] - y[0]]
+
+    # transfer data
+    z_range[:] = [z.min(), z.max()]
+    zshape = z.shape
+    dimension[:] = zshape[::-1]
+    zz[:] = np.ravel(z)
+
+    # write and close
+    g.close()
 
 class CartesianGrid3D(object):
     """
@@ -42,8 +95,8 @@ class CartesianGrid3D(object):
         x-range: [50, 685] (nx = 128, dx = 5)
         y-range: [10, 640] (ny = 64, dy = 10)
         z-range: [-5, 630] (nz = 128, dz = 5)
-         values: min = 1.0, mean = 1.0, max = 1.0
-        
+         values: min = 1, mean = 1, max = 1
+
         Standard math functions are also available:
         >>> grd *= 10.
         >>> print(grd.min(), grd.max())
@@ -157,6 +210,10 @@ class CartesianGrid3D(object):
         return self.origin[2] + self.dz * np.arange(self.nz)
     z = property(fget=_get_z)
 
+    def _get_ranges(self):
+        return [self.x, self.y, self.z]
+    ranges = property(fget=_get_ranges)
+
     def x2i(self, x):
         """
         Convert x coordinates to indices
@@ -234,8 +291,8 @@ class CartesianGrid3D(object):
 
         Parameters
         ----------
-        path_or_buf: string, file handle, or None
-            File path or object to write data to. If None (default), the
+        path_or_buf: str, file handle, or None
+            File path or buffer to write data to. If None (default), the
             string representation of the data is returned.
         order: list, optional
             List defining the order of grid dimensions in the output.
@@ -261,3 +318,51 @@ class CartesianGrid3D(object):
             f = open(path_or_buf, 'w')
             f.write(dat)
             f.close()
+
+    def to_gmt(self, path_or_buf, ix=None, iy=None, iz=None, **kwargs):
+        """
+        Write grid to a 2D GMT-compatible NetCDF file
+
+        ..Note:: Simple GMT grids must be 2D, so this function only writes a
+        2D slice from the full 3D grid.
+
+        Parameters
+        ----------
+        path_or_buf: str or file handle
+            Path or buffer to write data to.
+        ix, iy, iz: array_like or None, optional
+            Indices in each dimension to plot.  At least one of these must
+            have length equal to one.
+        kwargs: optional
+            Additional keyword arguments. See
+            :meth:`pyvm.models.grids.to_gmt()` for details.
+        """
+        if all([i is None for i in [ix, iy, iz]]):
+            iz = 0
+
+        if ix is None:
+            ix = range(self.nx)
+        else:
+            ix = np.atleast_1d(ix)
+        
+        if iy is None:
+            iy = range(self.ny)
+        else:
+            iy = np.atleast_1d(iy)
+
+        if iz is None:
+            iz = range(self.nz)
+        else:
+            iz = np.atleast_1d(iz)
+
+        idx = np.meshgrid(ix, iy, iz, indexing='ij')
+        z = np.squeeze(self.values[idx])
+        assert len(z.shape) == 2, 'values[ix, iy, iz] must be 2D'
+        
+        x, y = [self.ranges[idim][i] for idim, i in enumerate([ix, iy, iz])\
+                if len(i) > 1]
+
+        assert len(x) == z.shape[0]
+        assert len(y) == z.shape[1]
+
+        to_gmt(x, y, z, path_or_buf, **kwargs)
