@@ -94,7 +94,26 @@ class toolsTestCase(unittest.TestCase):
         
         vm.define_constant_layer_velocity(1, vel=9.5)
         self.assertAlmostEqual(1. / np.min(vm.sl), 9.5, 6)
-        
+
+    def test_fix_pinchouts(self):
+        """
+        Should fix layer pinchouts so that boundaries do not cross 
+        """
+        vm = VM()
+
+        z = np.reshape(2 + 0.05*(vm.grid.x),(vm.nx,1))
+        vm.insert_interface(z)
+
+        vm.insert_interface(6)
+
+        nerror0 = len(np.nonzero((vm.rf[1] - vm.rf[0]) < 0)[0])
+        assert nerror0 > 0
+
+        # should fix crossings and pinchouts
+        vm.fix_pinchouts()
+        nerror = len(np.nonzero((vm.rf[1] - vm.rf[0]) < 0)[0])
+        self.assertEqual(nerror, 0)
+
 
 def suite():
     testSuite = unittest.makeSuite(toolsTestCase, 'test')

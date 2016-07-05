@@ -2,11 +2,12 @@
 Tools for working with VM models
 """
 from __future__ import (absolute_import, division, print_function,
-        unicode_literals)
+                        unicode_literals)
 
 import numpy as np
 from scipy import signal
 from scipy.interpolate import interp1d
+
 
 def gauss_kern(size, sizey=None):
     """
@@ -22,6 +23,7 @@ def gauss_kern(size, sizey=None):
 
     return g / g.sum()
 
+
 def smooth2d(im, n, ny=None):
     """
     Blurs the image by convolving with a gaussian kernel of typical
@@ -33,19 +35,20 @@ def smooth2d(im, n, ny=None):
 
     return(improc)
 
+
 def smooth1d(x, window_len=10, window='hanning'):
     """
     Smooth the data using a window with requested size.
-    
+
     This method is based on the convolution of a scaled window with the signal.
-    The signal is prepared by introducing reflected copies of the signal 
+    The signal is prepared by introducing reflected copies of the signal
     (with the window size) in both ends so that transient parts are minimized
     in the begining and end part of the output signal.
-    
+
     Parameters
     ----------
     x: array_like
-        The input signal 
+        The input signal
     window_len: int
         The dimension of the smoothing window
     window: str, optional
@@ -56,15 +59,15 @@ def smooth1d(x, window_len=10, window='hanning'):
     --------
     x_smooth: ndarray
         The smoothed signal
-        
+
     Examples:
     ---------
-    >>> import numpy as np    
+    >>> import numpy as np
     >>> from pyvm.models.tools import smooth1d
     >>> t = np.linspace(-2, 2, 10)
     >>> x = np.sin(t) + np.random.randn(len(t)) * 0.1
     >>> y = smooth1d(x)
-    
+
     See also:
     ---------
     numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman,
@@ -73,22 +76,22 @@ def smooth1d(x, window_len=10, window='hanning'):
     """
 
     if x.ndim != 1:
-        raise ValueError, "smooth only accepts 1 dimension arrays."
+        raise ValueError("smooth only accepts 1 dimension arrays.")
 
     if x.size < window_len:
-        raise ValueError, "Input vector needs to be bigger than window size."
+        raise ValueError("Input vector needs to be bigger than window size.")
 
     if window_len < 3:
         return x
 
-    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-        raise ValueError, "Window is on of 'flat', 'hanning', 'hamming'," \
-                            + "'bartlett', 'blackman'"
+    if window not in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+        raise ValueError("Window is on of 'flat', 'hanning', 'hamming',"
+                         + "'bartlett', 'blackman'")
 
-    s=np.r_[2*x[0]-x[window_len:1:-1], x, 2*x[-1]-x[-1:-window_len:-1]]
-    
-    if window == 'flat': #moving average
-        w = np.ones(window_len,'d')
+    s = np.r_[2 * x[0] - x[window_len:1:-1], x, 2*x[-1]-x[-1:-window_len:-1]]
+
+    if window == 'flat':  # moving average
+        w = np.ones(window_len, 'd')
     else:
         w = getattr(np, window)(window_len)
     y = np.convolve(w/w.sum(), s, mode='same')
@@ -98,7 +101,7 @@ def smooth1d(x, window_len=10, window='hanning'):
 
 class VMTools(object):
     """
-    Convience class for VM model tools 
+    Convience class for VM model tools
     """
     def insert_interface(self, rf, jp=None, ir=None, ij=None):
         """
@@ -114,14 +117,14 @@ class VMTools(object):
         ir : {scalar, array_like, None}, optional
             Sets indices of the interface to use in the inversion
             for interface depths at each interface node. A value of ``-1``
-            indicates that a node should not be used in the inversion. 
+            indicates that a node should not be used in the inversion.
             Can be a scalar value that is copied to all nodes, a matrix of
             with shape ``(nx, ny)``, or None. If None (default), all
             values are set to the index of the new interface.
         ij : {scalar, array_like, None}, optional
             Sets indices of the interface to use in the inversion
             for slowness jumps at each interface node. A value of ``-1``
-            indicates that a node should not be used in the inversion. 
+            indicates that a node should not be used in the inversion.
             Can be a scalar value to be copied to all nodes, a matrix
             with shape ``(nx, ny)``, or None. If None (default), all
             values are set to the index of the new interface.
@@ -187,7 +190,7 @@ class VMTools(object):
         dvdz: float
             Velocity gradient.
         v0: float
-            Velocity at the top of the layer. Default is to use the 
+            Velocity at the top of the layer. Default is to use the
             value at the base of the overlying layer.
         xmin, xmax: float
             Set the x-coordinate limits for modifying velocities. Default
@@ -313,7 +316,7 @@ class VMTools(object):
                 else:
                     # Interpolate velocities
                     zi = z0[ix, iy] + (z1[ix, iy] - z0[ix, iy])\
-                            * np.arange(0., nvel) / (nvel - 1)
+                        * np.arange(0., nvel) / (nvel - 1)
                     vi = np.copy(_vel)
                     if z[0] < zi[0]:
                         zi = np.insert(zi, 0, z[0])
@@ -326,10 +329,12 @@ class VMTools(object):
                 self.sl[ix, iy, iz0:iz1] = 1. / v
 
     def define_constant_layer_velocity(self, ilyr, vel, xmin=None,
-                                          xmax=None, ymin=None, ymax=None):
+                                       xmax=None, ymin=None, ymax=None):
         """
         Define a constant velocity for an entire layer.
 
+        Parameters
+        ----------
         ilyr: int
             Index of layer to work on.
         vel: float
@@ -342,16 +347,16 @@ class VMTools(object):
             to change velocities over the entire y-domain.
         """
         self.define_stretched_layer_velocities(ilyr, [vel], xmin=xmin,
-                xmax=xmax, ymin=ymin, ymax=ymax)
+                                               xmax=xmax, ymin=ymin, ymax=ymax)
 
     def smooth_interface(self, iref, n=1, nwin=3, nwin_y=None):
         """
         Smooth interface depth by convolving a gaussian kernal of typical size
         n.  The optional keyword argument ``ny`` allows for a different
         size in the y direction.
-        
-        Parameter
-        ---------
+
+        Parameters
+        ----------
         iref: int
             Index of interface to smooth.
         n: int
@@ -360,7 +365,7 @@ class VMTools(object):
             Size of the guassian kernal. Default is 3.
         nwin_y: int, optional
             Specifies a different dimension for the smoothing
-            kernal in the y direction. Default is to set the y size equal to 
+            kernal in the y direction. Default is to set the y size equal to
             to the size in x.
         """
         for i in range(n):
@@ -373,3 +378,33 @@ class VMTools(object):
                     .reshape((self.nx, 1))
             else:
                 self.rf[iref] = smooth2d(self.rf[iref], nwin, ny=nwin_y)
+
+    def fix_pinchouts(self, min_dz=None):
+        """
+        Fixes layer pinchouts so that boundaries do not cross.
+
+
+        Parameters
+        ----------
+        min_dz: float
+            Minimum layer thickness.  Default is the vertical grid spacing.
+        """
+        if min_dz is None:
+            min_dz = self.dz
+
+        # put boundaries in correct order
+        for ir in range(1, self.nr):
+            _top = self.rf[ir - 1]
+            _bot = self.rf[ir]
+
+            top = np.minimum(_top, _bot)
+            bot = np.maximum(_top, _bot)
+
+            self.rf[ir - 1] = top
+            self.rf[ir] = bot
+
+        # ensure minimum spacing between boundaries
+        for ir in range(1, self.nr):
+            dz = self.rf[ir] - self.rf[ir  - 1]
+            idx = np.nonzero(dz < min_dz)
+            self.rf[ir][idx] += min_dz  - dz[idx]
