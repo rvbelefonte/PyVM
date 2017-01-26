@@ -5,6 +5,7 @@ from __future__ import (absolute_import, division, print_function,
         unicode_literals)
 
 import os
+import shutil
 import doctest
 import unittest
 import numpy as np
@@ -143,11 +144,74 @@ class vmTestCase(unittest.TestCase):
         for nr in [1, 2, 10]:
             vm.rf = 5 * np.ones((nr, vm.nx, vm.ny))
             self.assertEqual(np.max(vm.ilyr), nr)
+
+    def dev_raytrace(self):
+        """
+        Model should be compatible with the raytracer
+        """
+        #XXX testing with raytracer from Rockfish, for now
+        #TODO update test with PyVM raytracer, when it exists
+
+        from rockfish.tomography.forward import raytrace_from_ascii
+
+        temp_path = 'temp_raytrace_input'
+        if os.path.isdir(temp_path):
+            shutil.rmtree(temp_path)
+
+        os.makedirs(temp_path)
+
+        # simple vm model
+        shape = (128, 1, 64)
+        vm = VM(shape=shape, dx=1, dy=1, dz=1)
+
+        vm.insert_interface(5)
+
+        vm.define_constant_layer_velocity(0, 1500)
+        vm.define_constant_layer_gradient(1, 0.2)
+        
+        vmfile = os.path.join(temp_path, 'model.vm')
+        vm.write(vmfile)
+
+        self.assertTrue(os.path.isfile(vmfile))
+
+        # simple geometry and picks
+        instfile = os.path.join(temp_path, 'inst.dat')
+        shotfile = os.path.join(temp_path, 'shot.dat')
+        pickfile = os.path.join(temp_path, 'pick.dat')
+
+        f = open(instfile, 'w')
+        f.write('100 25. 0.0 3.0\n')
+        f.write('101 30. 0.0 3.0\n')
+        f.close()
+
+        f = open(shotfile, 'w')
+        f.write('9000 5. 0.0 0.006\n')
+        f.write('9001 10. 0.0 0.006\n')
+        f.close()
+        
+        f = open(pickfile, 'w')
+        f.write('100 9000 1 0 9.999 9.999 0.000\n')
+        f.write('101 9001 1 0 9.999 9.999 0.000\n')
+        f.close()
+
+
+        rayfile = os.path.join(temp_path, 'out.rays')
+        raytrace_from_ascii(vmfile, rayfile, instfile=instfile,
+                        shotfile=shotfile, pickfile=pickfile, verbose=1000)
+
+        self.assertTrue(os.path.isfile(rayfile))
+
+
+
+
+
+
+
                 
 
 def suite():
-    testSuite = unittest.makeSuite(vmTestCase, 'test')
-    testSuite.addTest(doctest.DocTestSuite(vm))
+    testSuite = unittest.makeSuite(vmTestCase, 'dev')
+    #testSuite.addTest(doctest.DocTestSuite(vm))
 
     return testSuite
 

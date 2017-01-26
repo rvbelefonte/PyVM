@@ -13,10 +13,12 @@ class VMTomographer(object):
         else:
             self.pickdb = PickDatabase()
 
-        if model:
+        if isinstance(model, VM):
+            # connect to existing model instance
             self.model = model
         else:
-            self.model = VM()
+            # create a new default model or read existing file
+            self.model = VM(filename=model)
 
         if rays:
             self.rays = rays

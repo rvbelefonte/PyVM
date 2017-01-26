@@ -51,9 +51,11 @@ z-range: [35, 86.1] (nz = 512, dz = 0.1)
 from __future__ import (absolute_import, division, print_function,
         unicode_literals)
 
+import os
 import copy
 import numpy as np
 import warnings
+from pyvm.utils.loaders import get_example_file
 from pyvm.utils.string_tools import pad_string
 from pyvm.models.grids import CartesianGrid3D
 from pyvm.models.io import VMIO
@@ -68,7 +70,14 @@ class VM(VMIO, VMTools, VMPlotter):
         Class for managing a VM Tomography model
         """
         if filename is not None:
-            self.read(filename, **kwargs)
+            if os.path.isfile(filename):
+                self.read(filename, **kwargs)
+            else:
+                try:
+                    _filename = get_example_file(filename.replace('.vm', '') + '.vm')
+                    self.read(_filename, **kwargs)
+                except IOError:
+                    raise IOError('No such file: {:}'.format(filename))
         else:
             shape = kwargs.pop('shape', (128, 1, 128))
             self._init_model(shape, **kwargs)

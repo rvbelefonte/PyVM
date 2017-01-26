@@ -14,6 +14,7 @@ class VMPlotter(object):
     """
     def plot(self, ax=None, figsize=None, cmap='jet',
             aspect='auto', velocity=True, apply_jumps=True,
+            colorbar=False,
             vmin=None, vmax=None, rf=True, ir=True, ij=True, show=None):
 
         #XXX TODO
@@ -34,7 +35,7 @@ class VMPlotter(object):
         img = np.flipud(vm.sl[:, 0, :].T)
         if velocity:
             img = 1. / img
-        ax.imshow(img, extent=[vm.r1[0], vm.r2[0], vm.r1[2], vm.r2[2]],
+        c = ax.imshow(img, extent=[vm.r1[0], vm.r2[0], vm.r1[2], vm.r2[2]],
                 cmap=cmap, vmin=vmin, vmax=vmax, aspect=aspect)
 
         # boundaries
@@ -52,6 +53,9 @@ class VMPlotter(object):
                 idx = np.nonzero(_ij == 0)
                 _ij[idx] = np.nan
                 ax.plot(vm.grid.x, _ij, '-g', lw=0.5)
+
+        if colorbar:
+            plt.colorbar(c)
 
         if new:
             plt.xlim(vm.r1[0], vm.r2[0])
