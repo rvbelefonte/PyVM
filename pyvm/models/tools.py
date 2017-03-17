@@ -30,8 +30,19 @@ def smooth2d(im, n, ny=None):
     size n. The optional keyword argument ny allows for a different
     size in the y direction.
     """
+    # pad edges
+    nx0, ny0 = im.shape
+    if ny is None:
+        ny = n
+    _im = np.zeros((nx0 + n, ny0 + ny))
+    _im[n:, ny:] = im
+    for i in range(0, n):
+        _im[i, ny:] = im[0, :]
+    for i in range(0, ny):
+        _im[n:, i] = im[:, i]
+
     g = gauss_kern(n, sizey=ny)
-    improc = signal.convolve(im, g, mode='valid')
+    improc = signal.convolve(_im, g, mode='same')[n:, ny:]
 
     return(improc)
 
