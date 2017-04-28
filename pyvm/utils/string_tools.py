@@ -11,5 +11,5 @@ def pad_string(msg, char=' ', width=78):
         ``' '``.
     :param width:  Width of the line. Default is 78.
     """
-    npad = (width - len(msg)) / 2
+    npad = int((width - len(msg)) / 2)
     return char * npad + msg + char * npad

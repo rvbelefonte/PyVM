@@ -122,7 +122,7 @@ class VMIO(object):
             _write_{fmt} methods for advanced options.
         """
         if not hasattr(path_or_buf, 'write'):
-            buf = open(path_or_buf, 'w')
+            buf = open(path_or_buf, 'wb')
             close = True
         else:
             buf = path_or_buf
