@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+"""
+Concatentate a list of rayfan files.
+"""
+import argparse
+from pyvm.forward.raytracing.rayfan import readRayfanGroup, RayfanGroup
+
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Concatentate a list of rayfan files.')
+    parser.add_argument('filenames', metavar='FILENAME', type=str, nargs='+',
+                         help='list of filenames to join')
+    parser.add_argument('--outfile', '-o', metavar='OUTFILE', dest='outfile',
+                        default='join.rays',
+                        help='filename of the output file')
+
+    args = parser.parse_args()
+
+    inrays = [readRayfanGroup(f) for f in args.filenames]
+
+    outrays = RayfanGroup()
+
+    for _rays in inrays:
+        outrays.rayfans += _rays.rayfans
+
+    outrays.write(args.outfile)
+
