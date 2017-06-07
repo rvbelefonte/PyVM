@@ -46,22 +46,38 @@ class rayfanTestCase(unittest.TestCase):
 
         for az0, az1 in zip(rays.azimuths, rays1.azimuths):
             self.assertEqual(az0, az1)
-        
+
         for r0, r1 in zip(rays.offsets, rays1.offsets):
             self.assertEqual(r0, r1)
-        
+
         for e0, e1 in zip(rays.residuals, rays1.residuals):
             self.assertEqual(e0, e1)
 
         for rfn0, rfn1 in zip(rays.rayfans, rays1.rayfans):
 
+            # should have correct metadata
+            self.assertEqual(rfn0.start_point_id,
+                             rfn1.start_point_id)
+            
+            self.assertEqual(rfn0.nrays, rfn1.nrays)
+            
+            # should have correct number of raypaths
             self.assertEqual(len(rfn0.paths), len(rfn1.paths))
 
             for i in range(len(rfn0.paths)):
+                # should have correct path metadata
+                self.assertEqual(rfn0.end_point_ids[i], rfn1.end_point_ids[i])
+                self.assertEqual(rfn0.event_ids[i], rfn1.event_ids[i])
+                self.assertEqual(rfn0.event_subids[i], rfn1.event_subids[i])
+                self.assertEqual(rfn0.pick_times[i], rfn1.pick_times[i])
+                self.assertEqual(rfn0.travel_times[i], rfn1.travel_times[i])
+                self.assertEqual(rfn0.pick_errors[i], rfn1.pick_errors[i])
+
                 for j in range(len(rfn0.paths[i])):
                     for k in range(3):
+                        # should have correct path coordinates
                         self.assertEqual(rfn0.paths[i][j][k], rfn1.paths[i][j][k])
-        
+
         if os.path.isfile(tempfile):
             os.remove(tempfile)
 

@@ -258,8 +258,8 @@ class Rayfan(object):
         Write data for a single rayfan
         """
         # rayfan header information
-        pack.pack_4byte_Integer(file, np.int32(self.start_point_id,
-                                               endian=endian))
+        pack.pack_4byte_Integer(file, np.int32(self.start_point_id),
+                                               endian=endian)
         pack.pack_4byte_Integer(file, np.int32(self.nrays), endian=endian)
         nsize = sum([len(p) for p in self.paths])
         pack.pack_4byte_Integer(file, np.int32(nsize),
