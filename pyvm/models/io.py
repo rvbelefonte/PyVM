@@ -7,7 +7,7 @@ from __future__ import (absolute_import, division, print_function,
 import os
 import numpy as np
 from struct import unpack
-from pyvm.io import pack
+from pyvm.io import pack, unpack
 from pyvm.utils.loaders import get_example_file
 
 ENDIAN = pack.BYTEORDER
@@ -65,17 +65,14 @@ class VMIO(object):
     def _read_vm(self, buf, head_only=False, endian=ENDIAN):
 
         # Read header
-        fmt = '{:}iiii'.format(endian)
-        nx, ny, nz, nr = unpack(fmt, buf.read(4 * 4))
+        nx, ny, nz, nr  = unpack.unpack_4byte_Integer(buf, 4, endian=endian)
         if nz == 0:
             nz = ny
             ny = 1
 
-        fmt = '{:}fff'.format(endian)
-        origin = unpack(fmt, buf.read(4 * 3))
-        _r2 = unpack(fmt, buf.read(4 * 3))
-        fmt = '{:}fff'.format(endian)
-        spacing = unpack(fmt, buf.read(4 * 3))
+        origin = unpack.unpack_4byte_IEEE(buf, 3, endian=endian)
+        _r2 = unpack.unpack_4byte_IEEE(buf, 3, endian=endian)
+        spacing = unpack.unpack_4byte_IEEE(buf, 3, endian=endian)
 
         # initialize the model
         self._init_model((nx, ny, nz), origin=origin, spacing=spacing)
@@ -85,24 +82,23 @@ class VMIO(object):
 
         # Slowness grid
         ngrid = nx * ny * nz
-        fmt = endian + ('f' * ngrid)
-        sl = np.asarray(unpack(fmt, buf.read(4 * ngrid)))
+        sl = np.asarray(unpack.unpack_4byte_IEEE(buf, ngrid, endian=endian))
         self.grid.values = np.reshape(sl, (self.grid.shape))
 
         # Interface depths and slowness jumps
         nintf = nx * ny * nr
-        fmt = endian + 'f' * nintf
-        self.rf = np.reshape(unpack(fmt, buf.read(4 * nintf)),
-                (nr, nx, ny))
-        self.jp = np.reshape(unpack(fmt, buf.read(4 * nintf)),
-                (nr, nx, ny))
+        self.rf = np.reshape(
+            unpack.unpack_4byte_IEEE(buf, nintf, endian=endian), (nr, nx, ny))
+        self.jp = np.reshape(
+            unpack.unpack_4byte_IEEE(buf, nintf, endian=endian), (nr, nx, ny))
 
         # Interface flags
-        fmt = endian + 'i' * nintf
-        self.ir = np.reshape(unpack(fmt, buf.read(4 * nintf)),
-                (nr, nx, ny))
-        self.ij = np.reshape(unpack(fmt, buf.read(4 * nintf)),
-                (nr, nx, ny))
+        self.ir = np.reshape(
+            unpack.unpack_4byte_Integer(buf, nintf, endian=endian),
+            (nr, nx, ny))
+        self.ij = np.reshape(
+            unpack.unpack_4byte_Integer(buf, nintf, endian=endian),
+            (nr, nx, ny))
 
     def write(self, path_or_buf, fmt=None, **kwargs):
         """
