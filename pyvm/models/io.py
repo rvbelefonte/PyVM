@@ -96,9 +96,12 @@ class VMIO(object):
         self.ir = np.reshape(
             unpack.unpack_4byte_Integer(buf, nintf, endian=endian),
             (nr, nx, ny))
+        self.ir -= 1
+
         self.ij = np.reshape(
             unpack.unpack_4byte_Integer(buf, nintf, endian=endian),
             (nr, nx, ny))
+        self.ij -= 1
 
     def write(self, path_or_buf, fmt=None, **kwargs):
         """

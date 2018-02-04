@@ -67,6 +67,46 @@ class ioTestCase(unittest.TestCase):
         if os.path.isfile(fname):
             os.remove(fname)
 
+    def dev_readwrite_interface_flags(self):
+        """
+        Should handle Fortran vs. Python indexing for interface flags
+        """
+        sl = np.random.rand(8, 1, 12)
+        vm = VM(sl=sl)
+
+        vm.insert_interface(1)
+
+        vm.ir = np.zeros((1, vm.nx, vm.ny))
+        vm.ij = np.zeros((1, vm.nx, vm.ny))
+        
+        
+        fname = 'temp_out.vm'
+        if os.path.isfile(fname):
+            os.remove(fname)
+
+        vm.write(fname)
+
+        # writing should not change flags
+        for ilyr in range(vm.nr):
+            for ix in range(vm.nx):
+                for iy in range(vm.ny):
+                    self.assertEqual(vm.ir[ilyr, ix, iy], 0)
+                    self.assertEqual(vm.ij[ilyr, ix, iy], 0)
+
+
+        # read should handle -1 for indexing
+        vm1 = VM(fname)
+        for ilyr in range(vm1.nr):
+            for ix in range(vm1.nx):
+                for iy in range(vm1.ny):
+                    self.assertEqual(vm1.ir[ilyr, ix, iy], 0)
+                    self.assertEqual(vm1.ij[ilyr, ix, iy], 0)
+        
+        # clean up
+        if os.path.isfile(fname):
+            os.remove(fname)
+
+
     def test_write_bin(self):
         """
         Should write grid to headerless binary format
@@ -80,7 +120,7 @@ class ioTestCase(unittest.TestCase):
 
         vm.write(fname)
 
-        f = open(fname, 'r')
+        f = open(fname, 'rb')
         dat = np.fromstring(f.read(), dtype='float32').reshape(sl.shape)
         
         for v1, v2 in zip(dat.flatten(), vm.sl.flatten()):

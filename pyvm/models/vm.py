@@ -60,10 +60,11 @@ from pyvm.utils.string_tools import pad_string
 from pyvm.models.grids import CartesianGrid3D
 from pyvm.models.io import VMIO
 from pyvm.models.tools import VMTools
+from pyvm.models.exceptions import VMErrorChecking
 from pyvm.models.plotting import VMPlotter
 
 
-class VM(VMIO, VMTools, VMPlotter):
+class VM(VMIO, VMTools, VMPlotter, VMErrorChecking):
 
     def __init__(self, filename=None, **kwargs):
         """

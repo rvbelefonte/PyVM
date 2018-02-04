@@ -145,6 +145,32 @@ class vmTestCase(unittest.TestCase):
             vm.rf = 5 * np.ones((nr, vm.nx, vm.ny))
             self.assertEqual(np.max(vm.ilyr), nr)
 
+    def test_verify(self):
+        """
+        Should inherit verify functions 
+        """
+
+        shape = (128, 1, 64)
+        vm = VM(shape=shape)
+        vm.sl = np.ones(vm.sl.shape)
+
+        self.assertTrue(hasattr(vm, 'verify'))
+        self.assertTrue(vm.verify())
+
+
+        # should return false if NaNs are on the grid
+        vm.sl[0, 0, 0] = np.nan
+        self.assertFalse(vm.verify())
+
+
+        # should return false if zeros are on the grid
+        vm.sl = np.ones(vm.sl.shape)
+        self.assertTrue(vm.verify())
+        vm.sl[0, 0, 0] = 0.0
+        self.assertFalse(vm.verify())
+
+
+
     def dev_raytrace(self):
         """
         Model should be compatible with the raytracer
@@ -210,7 +236,7 @@ class vmTestCase(unittest.TestCase):
                 
 
 def suite():
-    testSuite = unittest.makeSuite(vmTestCase, 'dev')
+    testSuite = unittest.makeSuite(vmTestCase, 'test')
     #testSuite.addTest(doctest.DocTestSuite(vm))
 
     return testSuite
